@@ -1,10 +1,11 @@
+import moviepy
 import requests
 import requests.auth
+from PIL.ImageFont import FreeTypeFont
 from moviepy.video.tools.subtitles import SubtitlesClip
 from translate import Translator
 import pyttsx3
 from moviepy import *
-
 
 import resources.settings as settings
 
@@ -23,6 +24,7 @@ def get_token():
     res = res.json()
     return res.get("access_token")
 
+
 def get_story(subreddit="stories", limit=1):
     headers = {
         "Authorization": f"bearer {get_token()}",
@@ -37,6 +39,7 @@ def get_story(subreddit="stories", limit=1):
     req = req.json()
     return req.get("data").get("children")[:limit]
 
+
 def separate_characters(text):
     parts = []
     max_length = 500
@@ -47,12 +50,12 @@ def separate_characters(text):
     parts.append(text)
     return parts
 
+
 def separate_story(text):
     parts = []
 
     separated_text = separate_characters(text)
     print(separated_text)
-
 
     for text_string in separated_text:
         count_of_words = len(text_string.split())
@@ -66,6 +69,7 @@ def separate_story(text):
     print(parts)
     return parts
 
+
 def translate_story(story, language):
     separated_text = separate_characters(story)
 
@@ -78,7 +82,8 @@ def translate_story(story, language):
 
     return translated_text
 
-def create_speech(text,language="en"):
+
+def create_speech(text, language="en"):
     engine = pyttsx3.init()
 
     engine.setProperty("rate", settings.words_per_minute)
@@ -93,28 +98,48 @@ def create_speech(text,language="en"):
             engine.setProperty("voice", voice.id)
             break
 
-    engine.save_to_file(text, "resources\\speech\\speech.mp3")
+    engine.save_to_file(text, settings.speech_path)
     engine.runAndWait()
     engine.stop()
 
+
 def create_video():
-    background = VideoFileClip("resources\\background\\background.mp4")
-    audio = AudioFileClip("resources\\speech\\speech.mp3")
-    audio.duration = background.duration
+    story = get_story()[0]
+    text = story.get("data").get("title") + ".\n" + story.get("data").get("selftext")
 
-    background.audio = audio
-    background.write_videofile("video.mp4", codec="libx264")
+    text = text.replace("\n", " ")
+
+    create_speech(text)
+
+    subtitles = create_subtitles(text)
+
+    background = VideoFileClip(settings.background_path)
+
+    audio = AudioFileClip(settings.speech_path)
+    audio.duration = settings.duration
+
+    video = CompositeVideoClip([background] + subtitles)
+    video.audio = audio
+    video.duration = settings.duration
+
+    video.write_videofile(settings.video_path, codec="libx264", fps=settings.fps)
 
 
+def create_subtitles(text_list):
+    text = "".join(text_list)
 
+    txt = text.split()
+    text_clip_array = []
+    count_of_words = len(txt)
+    for i in range(count_of_words // settings.words_per_second):
+        text_clip_text = " ".join(txt[i * settings.words_per_second:(i + 1) * settings.words_per_second])
+        text_clip_array.append(
+            TextClip(text=text_clip_text, font=settings.font_path, font_size=settings.font_size, color=settings.font_color).with_start(
+                f"00:00:{str(i).zfill(2)}.00").with_end(f"00:00:{str(i + 1).zfill(2)}.00").with_position(
+                ("center", "center"))
+        )
 
-
-#text = translate_story(get_story()[0].get("data").get("selftext"), "pl")
-
-text = get_story()[0].get("data").get("selftext")
-
-create_speech(text)
+    return text_clip_array
 
 create_video()
 
-# create_speech(text,"pl")
