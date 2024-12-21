@@ -93,20 +93,18 @@ def create_speech(text,language="en"):
             engine.setProperty("voice", voice.id)
             break
 
-    engine.save_to_file(text, "story.mp3")
+    engine.save_to_file(text, "resources\\speech\\speech.mp3")
     engine.runAndWait()
     engine.stop()
 
 def create_video():
     background = VideoFileClip("resources\\background\\background.mp4")
-    audio = AudioFileClip("story.mp3")
+    audio = AudioFileClip("resources\\speech\\speech.mp3")
     audio.duration = background.duration
 
-    video = CompositeVideoClip([background])
+    background.audio = audio
+    background.write_videofile("video.mp4", codec="libx264")
 
-    video.audio = audio
-
-    video.write_videofile("tiktok.mp4", codec="libx264", audio_codec="aac")
 
 
 
