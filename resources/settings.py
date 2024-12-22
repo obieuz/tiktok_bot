@@ -5,11 +5,12 @@ password = "obieuztrash"
 
 words_per_minute = 180
 words_per_second = words_per_minute // 60
-duration = 10
+duration = 5
 
 fps = 30
 
-font_path = "resources/fonts/OpenSans-Regular.ttf"
+#font_path = "resources/fonts/OpenSans-Regular.ttf"
+font_path = "resources/fonts/arial.ttf"
 font_size = 72
 font_color = "yellow"
 

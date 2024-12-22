@@ -1,7 +1,5 @@
-import moviepy
 import requests
 import requests.auth
-from PIL.ImageFont import FreeTypeFont
 from moviepy.video.tools.subtitles import SubtitlesClip
 from translate import Translator
 import pyttsx3
@@ -108,6 +106,8 @@ def create_video():
     text = story.get("data").get("title") + ".\n" + story.get("data").get("selftext")
 
     text = text.replace("\n", " ")
+    text = text.replace("."," ")
+    text = text.replace(","," ")
 
     create_speech(text)
 
@@ -118,7 +118,7 @@ def create_video():
     audio = AudioFileClip(settings.speech_path)
     audio.duration = settings.duration
 
-    video = CompositeVideoClip([background] + subtitles)
+    video = CompositeVideoClip([background, subtitles.with_position(("center", "center"))])
     video.audio = audio
     video.duration = settings.duration
 
@@ -126,20 +126,19 @@ def create_video():
 
 
 def create_subtitles(text_list):
-    text = "".join(text_list)
+    text = "".join(text_list).split()
 
-    txt = text.split()
-    text_clip_array = []
-    count_of_words = len(txt)
+    subtitle_list = []
+    count_of_words = len(text)
+
     for i in range(count_of_words // settings.words_per_second):
-        text_clip_text = " ".join(txt[i * settings.words_per_second:(i + 1) * settings.words_per_second])
-        text_clip_array.append(
-            TextClip(text=text_clip_text, font=settings.font_path, font_size=settings.font_size, color=settings.font_color).with_start(
-                f"00:00:{str(i).zfill(2)}.00").with_end(f"00:00:{str(i + 1).zfill(2)}.00").with_position(
-                ("center", "center"))
-        )
+        text_clip_text = " ".join(text[i * settings.words_per_second:(i + 1) * settings.words_per_second])
+        subtitle_list.append(((i,i+1),text_clip_text))
 
-    return text_clip_array
+    generator = lambda txt: TextClip(text=txt, font=settings.font_path, font_size=settings.font_size,
+                                     color=settings.font_color)
+
+    return SubtitlesClip(subtitle_list, make_textclip=generator)
 
 create_video()
 
