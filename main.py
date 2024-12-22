@@ -4,6 +4,7 @@ from moviepy.video.tools.subtitles import SubtitlesClip
 from translate import Translator
 import pyttsx3
 from moviepy import *
+import json
 
 import resources.settings as settings
 
@@ -22,7 +23,6 @@ def get_token():
     res = res.json()
     return res.get("access_token")
 
-
 def get_story(subreddit="stories", limit=1):
     headers = {
         "Authorization": f"bearer {get_token()}",
@@ -35,51 +35,50 @@ def get_story(subreddit="stories", limit=1):
 
     req = requests.get(f"https://oauth.reddit.com/r/{subreddit}/hot", params=params, headers=headers)
     req = req.json()
-    return req.get("data").get("children")[:limit]
 
+    story = req.get("data").get("children")[len(req.get("data").get("children")) - 1]
 
-def separate_characters(text):
-    parts = []
-    max_length = 500
+    if not check_story(story):
+        return get_story(subreddit, limit+1)
 
-    while len(text) > max_length:
-        parts.append(text[:max_length])
-        text = text[max_length:]
-    parts.append(text)
-    return parts
+    return story
 
+def check_story(story):
+    data = story.get("data")
+    subreddit_id = data.get("subreddit_id")
+    post_id = data.get("id")
 
-def separate_story(text):
-    parts = []
+    with open(settings.json_path, "r") as file:
+        stories = json.load(file)
+        for story in stories:
+            if story.get("subreddit_id") == subreddit_id and post_id in story.get("finished_stories"):
+                return False
+    return True
 
-    separated_text = separate_characters(text)
-    print(separated_text)
+def add_finished_story(story):
+    data = story.get("data")
+    subreddit_id = data.get("subreddit_id")
+    post_id = data.get("id")
+    subreddit_exist = False
 
-    for text_string in separated_text:
-        count_of_words = len(text_string.split())
+    with open(settings.json_path, "r") as file:
+        stories = json.load(file)
+        for story in stories:
+            if story.get("subreddit_id") == subreddit_id:
+                stories[stories.index(story)].get("finished_stories").append(post_id)
+                subreddit_exist = True
+                break
 
-        if not count_of_words < 180:
-            part = count_of_words // 180
-            for i in range(part):
-                parts.append(" ".join(text_string.split()[i * 180:(i + 1) * 180]))
+        if not subreddit_exist:
+            stories.append({"subreddit_id": subreddit_id, "finished_stories": [post_id]})
 
-        parts.append(text_string)
-    print(parts)
-    return parts
+    with open(settings.json_path, "w") as file:
+        json.dump(stories, file)
 
-
-def translate_story(story, language):
-    separated_text = separate_characters(story)
-
-    translated_text = ""
+def translate_story(text, language):
 
     translator = Translator(to_lang=language)
-
-    for text in separated_text:
-        translated_text += translator.translate(text)
-
-    return translated_text
-
+    return translator.translate(text)
 
 def create_speech(text, language="en"):
     engine = pyttsx3.init()
@@ -100,9 +99,8 @@ def create_speech(text, language="en"):
     engine.runAndWait()
     engine.stop()
 
-
-def create_video():
-    story = get_story()[0]
+def create_video(subreddit="stories"):
+    story = get_story(subreddit)
     text = story.get("data").get("title") + ".\n" + story.get("data").get("selftext")
 
     text = text.replace("\n", " ")
@@ -122,8 +120,9 @@ def create_video():
     video.audio = audio
     video.duration = settings.duration
 
-    video.write_videofile(settings.video_path, codec="libx264", fps=settings.fps)
+    add_finished_story(story)
 
+    video.write_videofile(settings.video_path, codec="libx264", fps=settings.fps)
 
 def create_subtitles(text_list):
     text = "".join(text_list).split()
