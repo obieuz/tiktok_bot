@@ -1,6 +1,8 @@
 import requests
 import requests.auth
+from selenium import webdriver
 from moviepy.video.tools.subtitles import SubtitlesClip
+from selenium.webdriver.common.by import By
 from translate import Translator
 import pyttsx3
 from moviepy import *
@@ -9,7 +11,7 @@ import json
 import resources.settings as settings
 
 
-def get_token():
+def get_reddit_token():
     auth = requests.auth.HTTPBasicAuth(settings.clientId, settings.secret)
     data = {
         "grant_type": "password",
@@ -23,9 +25,29 @@ def get_token():
     res = res.json()
     return res.get("access_token")
 
+def get_tiktok_code():
+    return input("Enter the code: ")
+
+def get_tiktok_token():
+    body = {
+        "client_key": settings.tiktok_client_key,
+        "client_secret": settings.tiktok_secret,
+        "code": get_tiktok_code(),
+        "grant_type": "authorization_code",
+        "redirect_uri": settings.tiktok_redirect_url
+    }
+    headers = {
+        "Content-Type":"application/x-www-form-urlencoded"
+    }
+
+    res = requests.post("https://open.tiktokapis.com/v2/oauth/token/", data=body, headers=headers)
+    res = res.json()
+    print(res)
+    return res.get("access_token")
+
 def get_story(subreddit="stories", limit=1):
     headers = {
-        "Authorization": f"bearer {get_token()}",
+        "Authorization": f"bearer {get_reddit_token()}",
         "User-Agent": "OAuth2 Test Client"
     }
 
@@ -114,11 +136,10 @@ def create_video(subreddit="stories"):
     background = VideoFileClip(settings.background_path)
 
     audio = AudioFileClip(settings.speech_path)
-    audio.duration = settings.duration
 
     video = CompositeVideoClip([background, subtitles.with_position(("center", "center"))])
     video.audio = audio
-    video.duration = settings.duration
+    video.duration = background.duration
 
     add_finished_story(story)
 
@@ -139,5 +160,17 @@ def create_subtitles(text_list):
 
     return SubtitlesClip(subtitle_list, make_textclip=generator)
 
-create_video()
+def get_user_info():
+    url = "https://open-api.tiktok.com/v2/user/info/"
+    headers = {
+        "Authorization": f"Bearer {get_tiktok_token()}"
+    }
+    params = {
+        "fields": "open_id,union_id,avatar_url"
+    }
+
+    res = requests.get(url, params=params, headers=headers)
+    print(res.json())
+
+get_user_info()
 
