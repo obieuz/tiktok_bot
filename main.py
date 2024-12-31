@@ -176,27 +176,34 @@ def create_video(subreddit="stories"):
 
 def generate_subtitles():
     model = whisper.load_model("base")
-    result = model.transcribe(settings.AUDIO_PATH, fp16=False)
+    result = model.transcribe(settings.AUDIO_PATH, fp16=False, word_timestamps=True)
 
     srt_content = []
+    subtitle_index = 0
     for i, segment in enumerate(result["segments"]):
-        start = segment["start"]
-        end = segment["end"]
-        text = segment["text"]
+        words = segment["words"]
+        sup_list = []
+        for j in range(0,len(words), settings.WORDS_PER_FRAME):
+            sup_list.append(words[j:j + settings.WORDS_PER_FRAME])
 
-        start_time = format_time(start)
-        end_time = format_time(end)
+        for sup in sup_list:
+            start = sup[0]["start"]
+            end = sup[-1]["end"]
+            text = " ".join([word["word"] for word in sup])
 
-        srt_content.append(f"{i + 1}")
-        srt_content.append(f"{start_time} --> {end_time}")
-        srt_content.append(text)
-        srt_content.append("")
+            start_time = format_time(start)
+            end_time = format_time(end)
+
+            srt_content.append(f"{subtitle_index + 1}")
+            srt_content.append(f"{start_time} --> {end_time}")
+            srt_content.append(text)
+            srt_content.append("")
 
     with open(settings.SUBTITLES_PATH, "w", encoding="utf-8") as f:
         f.write("\n".join(srt_content))
 
     generator = lambda txt: TextClip(text=txt, font=settings.FONT_PATH,
-                                     color=settings.FONT_COLOR, size=(1920, 1080))
+                                     color=settings.FONT_COLOR, font_size=settings.FONT_SIZE)
     return SubtitlesClip(settings.SUBTITLES_PATH, make_textclip=generator)
 
 

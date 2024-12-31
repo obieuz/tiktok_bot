@@ -10,10 +10,13 @@ TIKTOK_REDIRECT_URL = "https://obieuz.online/code.html"
 WORDS_PER_MINUTE = 160
 DURATION = 60
 
+WORDS_PER_FRAME = 3
+
 FPS = 30
 
 FONT_PATH = "resources/fonts/arial.ttf"
 FONT_COLOR = "yellow"
+FONT_SIZE = 72
 
 AUDIO_PATH = "resources/audio.mp3"
 BACKGROUND_VIDEO_PATH = "resources/background.mp4"
