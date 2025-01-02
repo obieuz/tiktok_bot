@@ -83,8 +83,14 @@ def generate_subtitles():
             end = sup[-1]["end"]
             text = " ".join([word["word"] for word in sup])
 
+            print(f"{subtitle_index + 1}, List : {sup}")
+            for sub in sup:
+                print(f"Word : {sub['word']}, Start : {sub['start']}, End : {sub['end']}")
+
             start_time = format_time(start)
             end_time = format_time(end)
+
+            subtitle_index += 1
 
             srt_content.append(f"{subtitle_index + 1}")
             srt_content.append(f"{start_time} --> {end_time}")
@@ -100,8 +106,9 @@ def generate_subtitles():
 
 
 def format_time(seconds):
+    milliseconds = int(str(seconds).split(".")[1])*10
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     seconds = int(seconds % 60)
-    milliseconds = int((seconds % 1) * 1000)
+    print(f"Hours : {hours}, Minutes : {minutes}, Seconds : {seconds}, Milliseconds : {milliseconds}")
     return f"{hours:02}:{minutes:02}:{seconds:02},{milliseconds:03}"
