@@ -1,3 +1,5 @@
+import os.path
+
 from moviepy.video.tools.subtitles import SubtitlesClip
 from translate import Translator
 import pyttsx3
@@ -5,6 +7,7 @@ from moviepy import *
 import whisper
 import settings as settings
 from functions.reddit import get_story, add_finished_story
+from functions.tiktok import upload_video
 
 
 def translate_story(text, language):
@@ -40,9 +43,6 @@ def create_video(subreddit="stories"):
     print("Got story")
     text = story.get("data").get("title") + ".\n" + story.get("data").get("selftext")
 
-    text = text.replace(".", " ")
-    text = text.replace(",", " ")
-
     create_speech(text)
     print("Created audio")
 
@@ -64,6 +64,9 @@ def create_video(subreddit="stories"):
 
     video.write_videofile(settings.RESULT_VIDEO_PATH, codec="libx264", fps=settings.FPS)
     print("Created video")
+
+    upload_video(settings.RESULT_VIDEO_PATH, os.path.getsize(settings.RESULT_VIDEO_PATH))
+    print("Uploaded video")
 
 
 def generate_subtitles():
