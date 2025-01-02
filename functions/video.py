@@ -86,6 +86,8 @@ def generate_subtitles():
             start_time = format_time(start)
             end_time = format_time(end)
 
+            subtitle_index += 1
+
             srt_content.append(f"{subtitle_index + 1}")
             srt_content.append(f"{start_time} --> {end_time}")
             srt_content.append(text)
@@ -100,8 +102,8 @@ def generate_subtitles():
 
 
 def format_time(seconds):
+    milliseconds = int(str(seconds).split(".")[1])*10
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     seconds = int(seconds % 60)
-    milliseconds = int((seconds % 1) * 1000)
     return f"{hours:02}:{minutes:02}:{seconds:02},{milliseconds:03}"
