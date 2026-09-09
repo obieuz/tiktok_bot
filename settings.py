@@ -1,11 +1,18 @@
-REDDIT_CLIENT_ID = "7k3nBUE9VBMq1OhGM_CDCw"
-REDDIT_SECRET = "WhdvAUK4R8SpM19mwZx3yPPSonsGIQ"
-REDDIT_USERNAME = "obi_trash"
-REDDIT_PASSWORD = "obieuztrash"
+import os
 
-TIKTOK_CLIENT_ID = "sbaw3xbpcyt8bzmlpr"
-TIKTOK_SECRET = "uudCnNY8sawJNAFslBbrxWJp8xwvuPQw"
-TIKTOK_REDIRECT_URL = "https://obieuz.online/code.html"
+from dotenv import load_dotenv
+
+
+load_dotenv(".env.local")
+
+REDDIT_CLIENT_ID = os.environ["REDDIT_CLIENT_ID"]
+REDDIT_SECRET = os.environ["REDDIT_SECRET"]
+REDDIT_USERNAME = os.environ["REDDIT_USERNAME"]
+REDDIT_PASSWORD = os.environ["REDDIT_PASSWORD"]
+
+TIKTOK_CLIENT_ID = os.environ["TIKTOK_CLIENT_ID"]
+TIKTOK_SECRET = os.environ["TIKTOK_SECRET"]
+TIKTOK_REDIRECT_URL = os.environ["TIKTOK_REDIRECT_URL"]
 
 WORDS_PER_MINUTE = 170
 DURATION = 60

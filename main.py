@@ -5,4 +5,6 @@ from functions.reddit import *
 from functions.tiktok import *
 from functions.video import *
 
-upload_video(settings.RESULT_VIDEO_PATH)
+# upload_video(settings.RESULT_VIDEO_PATH)
+
+create_video(settings.RESULT_VIDEO_PATH)

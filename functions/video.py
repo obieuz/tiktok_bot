@@ -4,7 +4,8 @@ from moviepy.video.tools.subtitles import SubtitlesClip
 from translate import Translator
 import pyttsx3
 from moviepy import *
-import whisper
+from faster_whisper import WhisperModel
+
 import settings as settings
 from functions.reddit import get_story, add_finished_story
 from functions.tiktok import upload_video
@@ -65,34 +66,41 @@ def create_video(subreddit="stories"):
     video.write_videofile(settings.RESULT_VIDEO_PATH, codec="libx264", fps=settings.FPS)
     print("Created video")
 
-    upload_video(settings.RESULT_VIDEO_PATH, os.path.getsize(settings.RESULT_VIDEO_PATH))
-    print("Uploaded video")
+    # upload_video(settings.RESULT_VIDEO_PATH, os.path.getsize(settings.RESULT_VIDEO_PATH))
+    # print("Uploaded video")
 
 
 def generate_subtitles():
-    model = whisper.load_model("base")
-    result = model.transcribe(settings.AUDIO_PATH, fp16=False, word_timestamps=True)
+    if WhisperModel is None:
+        raise RuntimeError("Install faster-whisper: pip install faster-whisper")
+
+    model = WhisperModel("base", device="cpu", compute_type="int8")
+    segments, _ = model.transcribe(settings.AUDIO_PATH, word_timestamps=True)
 
     srt_content = []
     subtitle_index = 0
-    for i, segment in enumerate(result["segments"]):
-        words = segment["words"]
-        sup_list = []
-        for j in range(0, len(words), settings.WORDS_PER_FRAME):
-            sup_list.append(words[j:j + settings.WORDS_PER_FRAME])
+    for segment in segments:
+        words = getattr(segment, "words", None) or []
 
-        for sup in sup_list:
-            start = sup[0]["start"]
-            end = sup[-1]["end"]
-            text = " ".join([word["word"] for word in sup])
+        if not words:
+            words = [{"word": word.strip(), "start": segment.start, "end": segment.end}
+                     for word in segment.text.split()]
 
-            start_time = format_time(start)
-            end_time = format_time(end)
+        for chunk_start in range(0, len(words), settings.WORDS_PER_FRAME):
+            chunk = words[chunk_start:chunk_start + settings.WORDS_PER_FRAME]
+            if not chunk:
+                continue
+
+            start = chunk[0]["start"]
+            end = chunk[-1]["end"]
+            text = " ".join([word.get("word", "") for word in chunk if word.get("word")]).strip()
+
+            if not text:
+                continue
 
             subtitle_index += 1
-
-            srt_content.append(f"{subtitle_index + 1}")
-            srt_content.append(f"{start_time} --> {end_time}")
+            srt_content.append(str(subtitle_index))
+            srt_content.append(f"{format_time(start)} --> {format_time(end)}")
             srt_content.append(text)
             srt_content.append("")
 
@@ -105,7 +113,8 @@ def generate_subtitles():
 
 
 def format_time(seconds):
-    milliseconds = int(str(seconds).split(".")[1])*10
+    seconds = float(seconds)
+    milliseconds = int(round((seconds - int(seconds)) * 1000))
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     seconds = int(seconds % 60)
